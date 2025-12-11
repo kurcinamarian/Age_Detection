@@ -221,6 +221,8 @@ def main(cfg):
         MODEL.classifier[6] = nn.Linear(4096, 3)
     elif model_name == "EfficientNet-B0":
         MODEL = models.efficientnet_b0(weights=None)
+        for param in MODEL.features[0].parameters():
+            param.requires_grad = False
         MODEL.classifier[1] = nn.Linear(MODEL.classifier[1].in_features, 3)
     else:
         raise ValueError(f"Unknown model: {model_name}")

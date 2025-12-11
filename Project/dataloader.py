@@ -5,9 +5,16 @@ from torchvision import transforms
 
 def create_dataloaders(BATCH_SIZE, DATASET_PATH, NUM_WORKERS):
     train_tfms = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((256, 256)),
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomRotation(20),
+        transforms.RandomAffine(
+            degrees=20,
+            translate=(0.05, 0.05),
+            scale=(0.95, 1.05),
+            shear=5
+        ),
+        transforms.RandomPerspective(distortion_scale=0.15, p=0.3),
+        transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
         transforms.ColorJitter(
             brightness=0.2,
             contrast=0.2,

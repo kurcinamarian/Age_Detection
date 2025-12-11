@@ -9,7 +9,7 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 # Base config (values that do NOT change)
 base_config = {
     "dataset_path": "../Dataset_Split",
-    "model": "ResNet18",
+    "model": "EfficientNet-B0",
     "batch_size": 64,
     "num_workers": 4,
     "use_wandb": True,
@@ -18,7 +18,7 @@ base_config = {
     "wandb_log_frequency": 500,
     "weight_decay": 0.001,
     "label_smoothing": 0.1,
-    "early_stop_patience": 5,
+    "early_stop_patience": 10,
 }
 
 # Parameters with multiple possible values
@@ -44,10 +44,10 @@ for i, combo in enumerate(combinations, start=1):
 
     # --- Unique run name ---
     run_id = f"{i:03d}"
-    config["wandb_run_name"] = f"resnet18_run_{run_id}"
+    config["wandb_run_name"] = f"EfficientNet_run_{run_id}"
 
     # --- Unique output directory ---
-    config["out_dir"] = f"../runs/resnet18_run_{run_id}"
+    config["out_dir"] = f"../runs/EfficientNet_run_{run_id}"
 
     # Save JSON
     file_path = OUTPUT_DIR / f"config_{run_id}.json"
