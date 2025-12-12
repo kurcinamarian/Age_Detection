@@ -219,21 +219,26 @@ def main(cfg):
             param.requires_grad = False
         MODEL.fc = nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(MODEL.fc.in_features, 128),
+            nn.Linear(MODEL.fc.in_features, 256),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(128, 3)
+            nn.Linear(256, 3)
         )
-    # elif model_name == "VGG-16":
-    # MODEL = models.vgg16(weights=None)
-    # MODEL.classifier[6] = nn.Linear(4096, 3)
+    elif model_name == "VGG-16":
+        MODEL = models.vgg16(weights=None)
+        MODEL.classifier[6] = nn.Linear(4096, 3)
+    elif model_name == "EfficientNet-B0":
+        MODEL = models.efficientnet_b0(weights=None)
+        for param in MODEL.features[0].parameters():
+            param.requires_grad = False
+        MODEL.classifier[1] = nn.Linear(MODEL.classifier[1].in_features, 3)
     elif model_name == "MobileNetV3-Large":
         MODEL = models.mobilenet_v3_large(weights=None)
         MODEL.classifier = nn.Sequential(
-            nn.Linear(MODEL.classifier[0].in_features, 256),
+            nn.Linear(MODEL.classifier[0].in_features, 128),
             nn.Hardswish(),
-            nn.Dropout(0.3),
-            nn.Linear(256, 3)
+            nn.Dropout(0.5),
+            nn.Linear(128, 3)
         )
     else:
         raise ValueError(f"Unknown model: {model_name}")

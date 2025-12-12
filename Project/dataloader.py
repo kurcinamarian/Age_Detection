@@ -5,7 +5,7 @@ from torchvision import transforms
 
 def create_dataloaders(BATCH_SIZE, DATASET_PATH, NUM_WORKERS):
     train_tfms = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize((125, 99)),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomAffine(
             degrees=20,
@@ -29,7 +29,7 @@ def create_dataloaders(BATCH_SIZE, DATASET_PATH, NUM_WORKERS):
     ])
 
     valid_tfms = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((125, 99)),
         transforms.ToTensor(),
         transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
@@ -38,7 +38,7 @@ def create_dataloaders(BATCH_SIZE, DATASET_PATH, NUM_WORKERS):
     ])
 
     test_tfms = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((125, 99)),
         transforms.ToTensor(),
         transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
