@@ -386,7 +386,7 @@ def main(cfg):
         else:
             epochs_no_improvement += 1
         # If too many epochs without improvement, stop early
-        if train_acc - val_acc > 0.3 and val_acc > 88: #epochs_no_improvement >= EARLY_STOP_PATIENCE:
+        if (train_acc - val_acc > 0.3 and val_acc > 0.90) or epochs_no_improvement >= EARLY_STOP_PATIENCE: #epochs_no_improvement >= EARLY_STOP_PATIENCE:
             print(f"Early stopping at epoch {epoch+1}")
             break
 
