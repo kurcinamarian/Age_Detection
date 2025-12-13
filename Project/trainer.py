@@ -219,6 +219,28 @@ def main(cfg):
             param.requires_grad = False
         MODEL.fc = nn.Sequential(
             nn.Dropout(0.5),
+            nn.Linear(MODEL.fc.in_features, 64),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(64, 3)
+        )
+    elif model_name == "ResNet18-2":
+        MODEL = models.resnet18(weights=None)
+        for param in MODEL.layer1.parameters():
+            param.requires_grad = False
+        MODEL.fc = nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Linear(MODEL.fc.in_features, 128),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(128, 3)
+        )
+    elif model_name == "ResNet18-3":
+        MODEL = models.resnet18(weights=None)
+        for param in MODEL.layer1.parameters():
+            param.requires_grad = False
+        MODEL.fc = nn.Sequential(
+            nn.Dropout(0.5),
             nn.Linear(MODEL.fc.in_features, 256),
             nn.ReLU(),
             nn.Dropout(0.5),
@@ -304,7 +326,7 @@ def main(cfg):
 
     class_weights = torch.tensor(class_weights, dtype=torch.float32)
     class_weights = class_weights.to(device)
-    # Loss function: CrossEntropyLoss with label smoothing
+    # Loss function: CrossEntropyLoss with label smoothing and class weights
     criterion = nn.CrossEntropyLoss(label_smoothing=LABEL_SMOOTHING,weight=class_weights)
 
     # Optimizer: Adam with weight decay
@@ -329,7 +351,6 @@ def main(cfg):
         t0 = time.time()
         train_loss, train_acc = train_one_epoch(model, train_loader, device, optimizer, criterion, scaler)
 
-        # Log detailed metrics every 5 epochs
         val_loss, val_acc = evaluate(model, valid_loader, device, criterion, return_predictions=False)
 
         scheduler.step()
@@ -365,13 +386,13 @@ def main(cfg):
         else:
             epochs_no_improvement += 1
         # If too many epochs without improvement, stop early
-        if epochs_no_improvement >= EARLY_STOP_PATIENCE:
+        if train_acc - val_acc > 0.3 and val_acc > 88: #epochs_no_improvement >= EARLY_STOP_PATIENCE:
             print(f"Early stopping at epoch {epoch+1}")
             break
 
     if best_path.exists():
         # Load best checkpoint for test evaluation
-        checkpoint = torch.load(best_path, map_location=device)
+        checkpoint = torch.load(best_path, map_location=device,  weights_only=True)
         model.load_state_dict(checkpoint["model_state"])
 
     # Final evaluation on all sets
@@ -383,7 +404,7 @@ def main(cfg):
 
     test_loss, test_acc, test_preds, test_labels, test_probs = evaluate(
         model, test_loader, device, criterion, return_predictions=True)
-    test_metrics = get_metrics(test_preds, test_labels, test_probs)
+    test_metrics = get_metrics(test_labels, test_preds, test_probs)
 
     print(f"TEST | loss={test_loss:.4f} acc={test_acc:.4f}")
     print(f"TEST | F1-weighted={test_metrics['f1_weighted']:.4f} "
@@ -393,17 +414,17 @@ def main(cfg):
     if USE_WANDB:
         # Log metrics
         wandb.log({
-            "train_loss": train_loss,
-            "train_accuracy": train_acc,
+            "best/train_loss": train_loss,
+            "best/train_accuracy": train_acc,
 
-            "val_loss": val_loss,
-            "val_accuracy": val_acc,
+            "best/val_loss": val_loss,
+            "best/val_accuracy": val_acc,
 
-            "test_loss": test_loss,
-            "test_accuracy": test_acc,
-            "test_f1_weighted": test_metrics["f1_weighted"],
-            "test_precision_weighted": test_metrics["precision_weighted"],
-            "test_recall_weighted": test_metrics["recall_weighted"],
+            "best/test_loss": test_loss,
+            "best/test_accuracy": test_acc,
+            "best/test_f1_weighted": test_metrics["f1_weighted"],
+            "best/test_precision_weighted": test_metrics["precision_weighted"],
+            "best/test_recall_weighted": test_metrics["recall_weighted"],
         })
 
         # Log confusion matrix
