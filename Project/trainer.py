@@ -1,5 +1,6 @@
 import time
 from collections import Counter
+import matplotlib.pyplot as plt
 import wandb
 import torch
 import torch.nn as nn
@@ -101,15 +102,6 @@ def get_metrics(y_true, y_pred, y_probs):
 
 
 def create_confusion_matrix_images(y_true, y_pred, class_names=None, title_prefix=""):
-    """
-    Creates a confusion matrix image with raw counts and numbers inside each cell.
-    Returns a dictionary with a wandb.Image.
-    """
-
-    import matplotlib.pyplot as plt
-    import numpy as np
-    from sklearn.metrics import confusion_matrix
-    import wandb
 
     log_dict = {}
 
@@ -117,10 +109,9 @@ def create_confusion_matrix_images(y_true, y_pred, class_names=None, title_prefi
     n_classes = len(unique_classes)
     labels = list(range(n_classes)) if class_names is None else list(range(len(class_names)))
 
-    # Raw confusion matrix (counts)
     cm = confusion_matrix(y_true, y_pred, labels=labels)
 
-    figsize = (10, 10)  # smaller size for raw counts
+    figsize = (10, 10)
     fig1, ax1 = plt.subplots(figsize=figsize)
     im = ax1.imshow(cm, interpolation='nearest', cmap='Blues')
     ax1.set_title(f"{title_prefix}Confusion Matrix")
@@ -129,7 +120,6 @@ def create_confusion_matrix_images(y_true, y_pred, class_names=None, title_prefi
     cbar = fig1.colorbar(im, ax=ax1, fraction=0.046, pad=0.04)
     cbar.ax.set_ylabel('Count', rotation=90)
 
-    # Add numbers inside each cell
     for i in range(n_classes):
         for j in range(n_classes):
             value = cm[i, j]
@@ -212,21 +202,10 @@ def main(cfg):
 
     model_name = cfg["model"]
 
-    # Build model dynamically
+    # Choose model
     if model_name == "ResNet18":
         MODEL = models.resnet18(weights=None)
-        for param in MODEL.layer1.parameters():
-            param.requires_grad = False
-        MODEL.fc = nn.Sequential(
-            nn.Dropout(0.5),
-            nn.Linear(MODEL.fc.in_features, 64),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(64, 3)
-        )
-    elif model_name == "ResNet18-2":
-        MODEL = models.resnet18(weights=None)
-        for param in MODEL.layer1.parameters():
+        for param in MODEL.conv1.parameters():
             param.requires_grad = False
         MODEL.fc = nn.Sequential(
             nn.Dropout(0.5),
@@ -235,20 +214,9 @@ def main(cfg):
             nn.Dropout(0.5),
             nn.Linear(128, 3)
         )
-    elif model_name == "ResNet18-3":
-        MODEL = models.resnet18(weights=None)
-        for param in MODEL.layer1.parameters():
-            param.requires_grad = False
-        MODEL.fc = nn.Sequential(
-            nn.Dropout(0.5),
-            nn.Linear(MODEL.fc.in_features, 256),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(256, 3)
-        )
     elif model_name == "VGG-16":
         MODEL = models.vgg16(weights=None)
-        MODEL.classifier[6] = nn.Linear(4096, 3)
+        MODEL.classifier[6] = nn.Linear(64, 3)
     elif model_name == "EfficientNet-B0":
         MODEL = models.efficientnet_b0(weights=None)
         for param in MODEL.features[0].parameters():
@@ -326,6 +294,7 @@ def main(cfg):
 
     class_weights = torch.tensor(class_weights, dtype=torch.float32)
     class_weights = class_weights.to(device)
+
     # Loss function: CrossEntropyLoss with label smoothing and class weights
     criterion = nn.CrossEntropyLoss(label_smoothing=LABEL_SMOOTHING,weight=class_weights)
 
@@ -341,8 +310,8 @@ def main(cfg):
     best_path = OUT_DIR / "best.pt"
     last_path = OUT_DIR / "last.pt"
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    best_val_acc = 0.0 # current best validation accuracy
-    epochs_no_improvement = 0 # Count epoch without improvement for early stopping
+    best_val_acc = 0.0
+    epochs_no_improvement = 0
 
     print("started training")
 
@@ -386,7 +355,7 @@ def main(cfg):
         else:
             epochs_no_improvement += 1
         # If too many epochs without improvement, stop early
-        if (train_acc - val_acc > 0.3 and val_acc > 0.90) or epochs_no_improvement >= EARLY_STOP_PATIENCE: #epochs_no_improvement >= EARLY_STOP_PATIENCE:
+        if epochs_no_improvement >= EARLY_STOP_PATIENCE:
             print(f"Early stopping at epoch {epoch+1}")
             break
 
